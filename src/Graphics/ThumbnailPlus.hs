@@ -20,8 +20,8 @@ import Data.Default (Default(..))
 import Data.Maybe (fromMaybe)
 import qualified Control.Exception as E
 import qualified Control.Monad.Trans.Resource as R
-import qualified Data.Conduit as C
-import qualified Data.Conduit.Binary as CB
+import Data.Conduit
+import Data.Conduit.Binary (sourceHandle)
 import qualified Data.Typeable as T
 import qualified Graphics.GD as GD
 import qualified System.Directory as D
@@ -112,7 +112,7 @@ checkInput Configuration {..} inputFp =
     (_, inputH) <- lift $ R.allocate (IO.openFile inputFp IO.ReadMode) IO.hClose
     fileSize <- liftIO $ IO.hFileSize inputH
     unless (fileSize <= maxFileSize) $ throwE (FileSizeTooLarge fileSize)
-    minfo <- CB.sourceHandle inputH C.$$ sinkImageInfo
+    minfo <- runConduit $ sourceHandle inputH .| sinkImageInfo
     info@(imageSize, _) <- maybe (throwE ImageFormatUnrecognized) pure minfo
     unless (imageSize `fits` maxImageSize) $ throwE (ImageSizeTooLarge imageSize)
     return info
